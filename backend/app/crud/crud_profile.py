@@ -159,33 +159,61 @@ def generate_chromium_command(profile: models.Profile, chromium_executable_path:
     if profile.browser_version: # This corresponds to --fingerprint-brand-version
         args.append(f"--fingerprint-brand-version={profile.browser_version}")
         # If 'browser_brand' (e.g. 'Edge', 'Brave') is a field, it would be:
-        # if profile.browser_brand: args.append(f"--fingerprint-brand={profile.browser_brand}")
+        # if profile.browser_brand and profile.browser_brand != "Chrome": # Assuming Chrome is default
+        #     args.append(f"--fingerprint-brand={profile.browser_brand}")
 
-    # User-Agent (Direct Override)
-    # if profile.user_agent_mode == 'custom' and profile.user_agent: # Assuming a mode field
-    if profile.user_agent: # If a direct user_agent field exists and is filled
-        args.append(f"--user-agent={shlex.quote(profile.user_agent)}")
+    # User-Agent
+    if profile.user_agent_mode == 'custom' and profile.user_agent_custom:
+        args.append(f"--user-agent={shlex.quote(profile.user_agent_custom)}")
+    # If mode is 'random', assume --fingerprint seed handles it. If 'default', omit.
 
     # Sec-CH-UA
-    # if profile.sec_ch_ua_mode == 'custom' and profile.sec_ch_ua:
-    if profile.sec_ch_ua:
-         args.append(f"--sec-ch-ua={shlex.quote(profile.sec_ch_ua)}")
+    if profile.sec_ch_ua_mode == 'custom' and profile.sec_ch_ua_custom:
+         args.append(f"--sec-ch-ua={shlex.quote(profile.sec_ch_ua_custom)}")
+    # If mode is 'random', assume --fingerprint seed handles it. If 'default', omit.
 
+    # WebGL Image
+    # if profile.webgl_image_mode == 'custom' and profile.webgl_image_custom_hash:
+    #     args.append(f"--webgl-image-hash={profile.webgl_image_custom_hash}") # Hypothetical
+    # If mode is 'random', assume --fingerprint seed handles it. If 'default', omit.
 
-    # WebGL - assuming simple mode flags for now, or driven by --fingerprint seed
-    # if profile.webgl_image_mode == 'noise': args.append('--webgl-noise') # Hypothetical
-    if profile.webgl_vendor: # This is more specific, fingerprint-chromium might have flags like:
-        args.append(f"--webgl-vendor-override={shlex.quote(profile.webgl_vendor)}") # Hypothetical
-    if profile.webgl_renderer:
-        args.append(f"--webgl-renderer-override={shlex.quote(profile.webgl_renderer)}") # Hypothetical
+    # WebGL Metadata (Vendor/Renderer)
+    if profile.os_platform == 'linux': # As per docs, currently Linux-only
+        if profile.webgl_metadata_mode == 'custom':
+            if profile.webgl_vendor:
+                args.append(f"--webgl-vendor-override={shlex.quote(profile.webgl_vendor)}") # Hypothetical
+            if profile.webgl_renderer:
+                args.append(f"--webgl-renderer-override={shlex.quote(profile.webgl_renderer)}") # Hypothetical
+        # If mode is 'random', assume --fingerprint seed handles it. If 'default', omit.
 
+    # AudioContext
+    if profile.audiocontext_mode in ['noise', 'off']: # 'default' or 'random' (by seed) are other options
+        args.append(f"--audiocontext-mode={profile.audiocontext_mode}") # Hypothetical flag based on mode value
+
+    # ClientRects
+    if profile.clientrects_mode in ['noise', 'off']: # 'default' or 'random' (by seed)
+        args.append(f"--clientrects-mode={profile.clientrects_mode}") # Hypothetical flag
+
+    # Speech Voices
+    if profile.speech_voices_mode == 'custom' and profile.speech_voices_custom_data:
+        # Data format for speech_voices_custom_data needs to be defined (e.g., JSON string)
+        # Kernel needs a flag to accept this, e.g., --speech-voices-data='...'
+        args.append(f"--speech-voices-custom={shlex.quote(profile.speech_voices_custom_data)}") # Hypothetical
 
     # Hardware Concurrency (CPU cores)
     if profile.cpu_cores is not None: # Check for None explicitly if 0 is a valid value
         args.append(f"--fingerprint-hardware-concurrency={profile.cpu_cores}")
 
     # Device Memory (Not typically a direct flag, often part of overall fingerprint)
-    # if profile.memory_gb: args.append(f"--device-memory={profile.memory_gb}") # Hypothetical
+    # if profile.memory_gb: args.append(f"--device-memory={profile.memory_gb}") # Hypothetical, for user reference mostly
+
+    # SSL Cipher Suites
+    if profile.ssl_cipher_suites_mode == 'custom' and profile.ssl_custom_suites_data:
+        # Data format for ssl_custom_suites_data needs to be defined (e.g., comma-separated list of ciphers)
+        # Kernel needs a flag, e.g., --ssl-cipher-suites='...'
+        args.append(f"--ssl-cipher-suites={shlex.quote(profile.ssl_custom_suites_data)}") # Highly Hypothetical
+    # elif profile.ssl_cipher_suites_mode == 'strict':
+        # args.append("--ssl-strict-mode") # Hypothetical
 
     # Do Not Track
     if profile.do_not_track:

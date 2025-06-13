@@ -14,20 +14,26 @@ class ProfileBase(BaseModel):
     custom_proxy_id: Optional[int] = None
     cookies: Optional[str] = None
     startup_homepage: Optional[str] = None
-    user_agent: Optional[str] = None
-    sec_ch_ua: Optional[str] = None
+    user_agent_mode: Optional[str] = 'default'
+    user_agent_custom: Optional[str] = None
+    sec_ch_ua_mode: Optional[str] = 'default'
+    sec_ch_ua_custom: Optional[str] = None
     webgl_image_mode: Optional[str] = 'default'
+    # webgl_image_custom_hash: Optional[str] = None # Add if specific custom WebGL image hash is needed
+    webgl_metadata_mode: Optional[str] = 'default'
     webgl_vendor: Optional[str] = None
     webgl_renderer: Optional[str] = None
     audiocontext_mode: Optional[str] = 'default'
     clientrects_mode: Optional[str] = 'default'
     speech_voices_mode: Optional[str] = 'default'
+    speech_voices_custom_data: Optional[str] = None
     cpu_cores: Optional[int] = None
     memory_gb: Optional[int] = None
     device_name: Optional[str] = None
     mac_address: Optional[str] = None
     do_not_track: Optional[bool] = False
     ssl_cipher_suites_mode: Optional[str] = 'default'
+    ssl_custom_suites_data: Optional[str] = None
     port_scan_protection: Optional[bool] = True
     hardware_acceleration: Optional[bool] = True
     scan_port_whitelist: Optional[str] = None
@@ -51,20 +57,26 @@ class ProfileUpdate(BaseModel): # Inherit directly from BaseModel for full optio
     custom_proxy_id: Optional[int] = None
     cookies: Optional[str] = None
     startup_homepage: Optional[str] = None
-    user_agent: Optional[str] = None
-    sec_ch_ua: Optional[str] = None
+    user_agent_mode: Optional[str] = None
+    user_agent_custom: Optional[str] = None
+    sec_ch_ua_mode: Optional[str] = None
+    sec_ch_ua_custom: Optional[str] = None
     webgl_image_mode: Optional[str] = None
+    # webgl_image_custom_hash: Optional[str] = None
+    webgl_metadata_mode: Optional[str] = None
     webgl_vendor: Optional[str] = None
     webgl_renderer: Optional[str] = None
     audiocontext_mode: Optional[str] = None
     clientrects_mode: Optional[str] = None
     speech_voices_mode: Optional[str] = None
+    speech_voices_custom_data: Optional[str] = None
     cpu_cores: Optional[int] = None
     memory_gb: Optional[int] = None
     device_name: Optional[str] = None
     mac_address: Optional[str] = None
     do_not_track: Optional[bool] = None
     ssl_cipher_suites_mode: Optional[str] = None
+    ssl_custom_suites_data: Optional[str] = None
     port_scan_protection: Optional[bool] = None
     hardware_acceleration: Optional[bool] = None
     scan_port_whitelist: Optional[str] = None
@@ -78,16 +90,20 @@ class Profile(ProfileBase): # Profile inherits from ProfileBase, so name is requ
     id: int
     created_at: datetime
     last_launch_time: Optional[datetime] = None
-    proxy_config_type: str # Not optional for response
-    webgl_image_mode: str # Not optional for response
-    audiocontext_mode: str # Not optional for response
-    clientrects_mode: str # Not optional for response
-    speech_voices_mode: str # Not optional for response
-    do_not_track: bool # Not optional for response
-    ssl_cipher_suites_mode: str # Not optional for response
-    port_scan_protection: bool # Not optional for response
-    hardware_acceleration: bool # Not optional for response
-
+    # Fields that have defaults in ProfileBase should be non-optional here
+    # as they will always have a value.
+    proxy_config_type: str
+    user_agent_mode: str
+    sec_ch_ua_mode: str
+    webgl_image_mode: str
+    webgl_metadata_mode: str
+    audiocontext_mode: str
+    clientrects_mode: str
+    speech_voices_mode: str
+    do_not_track: bool
+    ssl_cipher_suites_mode: str
+    port_scan_protection: bool
+    hardware_acceleration: bool
 
     class Config:
         orm_mode = True

@@ -4,26 +4,13 @@
 
     <div class="top-operations">
       <button @click="openCreateProfileModal" class="primary-button">+ Create Browser</button>
-      <select class="batch-actions-select" v-model="selectedBatchAction" :disabled="selectedProfileIds.length === 0">
-        <option value="">Batch Actions</option>
-        <option value="delete">Batch Delete</option>
-        <option value="assign_group">Batch Assign Group</option>
-        <!-- Add more batch actions later -->
-      </select>
-      <button v-if="selectedBatchAction === 'delete'" @click="handleBatchDelete" :disabled="selectedProfileIds.length === 0" class="action-button danger">Confirm Delete</button>
-
-      <select v-if="selectedBatchAction === 'assign_group'" v-model="batchAssignGroupId" :disabled="selectedProfileIds.length === 0">
-        <option :value="null">Select Group to Assign</option>
-        <option v-for="group in availableGroupsForBatch" :key="group.id" :value="group.id">{{ group.name }}</option>
-      </select>
-      <button v-if="selectedBatchAction === 'assign_group'" @click="handleBatchAssignGroup" :disabled="selectedProfileIds.length === 0 || batchAssignGroupId === null" class="action-button">Confirm Assign</button>
-
-
-      <button @click="fetchProfiles(pagination.current_page, true)">同步 (Sync)</button> <!-- Added true for force refresh -->
+      <button @click="handleBatchDelete" :disabled="selectedProfileIds.length === 0">Batch Delete Selected</button>
+      <button @click="openBatchAssignGroupModal" :disabled="selectedProfileIds.length === 0">Batch Assign Group</button>
+      <button @click="fetchProfiles(pagination.current_page, true)">同步 (Sync)</button>
 
       <select class="group-filter-select" v-model="filterGroupId" @change="handleFilterChange">
         <option :value="null">All Groups</option>
-        <option v-for="group in availableGroupsForFilter" :key="group.id" :value="group.id">
+        <option v-for="group in availableGroups" :key="group.id" :value="group.id"> <!-- Changed to availableGroups -->
             {{ group.name }}
         </option>
       </select>
@@ -84,14 +71,42 @@
       @save="handleProfileModalSave"
     />
 
-    <!-- Launch status/output modal or notification area -->
-    <div v-if="launchStatus.visible" class="modal-overlay" @click.self="launchStatus.visible = false">
-        <div class="modal-content launch-status-modal">
-            <h3>Launch Status for Profile ID: {{ launchStatus.profile_id }}</h3>
-            <p :class="launchStatus.error ? 'modal-error' : 'modal-success'">{{ launchStatus.message }}</p>
-            <pre v-if="launchStatus.command">Command: {{ launchStatus.command }}</pre>
-            <button @click="launchStatus.visible = false">Close</button>
+    <!-- Launch Status Modal (existing) -->
+    <div v-if="showLaunchStatusModal" class="modal-overlay" @click.self="showLaunchStatusModal = false">
+      <div class="modal-content launch-status-modal">
+        <h2>Profile Launch Status</h2>
+        <p :class="launchStatus.error ? 'modal-error' : 'modal-success'"><strong>Status:</strong> {{ launchStatus.message }}</p>
+        <div v-if="launchStatus.command">
+          <strong>Generated Command:</strong>
+          <pre class="command-display"><code>{{ launchStatus.command }}</code></pre>
         </div>
+        <p v-if="launchStatus.error" class="modal-error"><strong>Details:</strong> {{ launchStatus.error }}</p>
+        <div class="modal-actions">
+          <button @click="showLaunchStatusModal = false" class="primary-button">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Assign Group Modal -->
+    <div v-if="showAssignGroupModal" class="modal-overlay" @click.self="showAssignGroupModal = false">
+      <div class="modal-content">
+        <h2>Assign Group to {{selectedProfileIds.length}} Selected Profile(s)</h2>
+        <div>
+          <label for="batchAssignGroupSelect">Select Group:</label>
+          <select id="batchAssignGroupSelect" v-model="selectedGroupIdForBatchAssign">
+            <option :value="null">Select a Group</option>
+            <option :value="0">Unassign (Remove from Group)</option>
+            <option v-for="group in availableGroups" :key="group.id" :value="group.id">
+              {{ group.name }}
+            </option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" @click="showAssignGroupModal = false">Cancel</button>
+          <button type="button" @click="submitBatchAssignGroup" class="primary-button" :disabled="selectedGroupIdForBatchAssign === null">Assign Group</button>
+        </div>
+        <p v-if="batchAssignError" class="modal-error">{{ batchAssignError }}</p>
+      </div>
     </div>
 
   </div>
@@ -161,23 +176,27 @@ const showProfileModal = ref(false);
 const editingProfile = ref<ProfileListItem | null>(null);
 
 const selectedProfileIds = ref<number[]>([]);
-const selectedBatchAction = ref('');
-const batchAssignGroupId = ref<number | null>(null);
-const availableGroupsForBatch = ref<Group[]>([]);
-const availableGroupsForFilter = ref<Group[]>([]);
-const availableProxiesForDisplay = ref<Proxy[]>([]); // To display proxy info
+// selectedBatchAction is removed as direct buttons are used
+// batchAssignGroupId is now selectedGroupIdForBatchAssign
+const availableGroups = ref<Group[]>([]); // Unified available groups list
+const availableProxiesForDisplay = ref<Proxy[]>([]);
 
 const filterGroupId = ref<number | null>(null);
 const searchNameQuery = ref('');
 
 
+const showLaunchStatusModal = ref(false);
 const launchStatus = reactive({
-    visible: false,
-    profile_id: null as number | null,
-    message: '',
-    command: null as string | null,
-    error: false,
+  profile_id: null as number | null,
+  message: '',
+  command: null as string | null,
+  error: null as string | null,
 });
+
+// New refs for Batch Assign Group Modal
+const showAssignGroupModal = ref(false);
+const selectedGroupIdForBatchAssign = ref<number | null>(null); // Can be 0 for unassign
+const batchAssignError = ref<string | null>(null);
 
 const pagination = reactive({
   current_page: 1,
@@ -205,16 +224,20 @@ const handleFilterChange = () => {
 };
 
 
-const fetchSelectableData = async () => { // For group filter and proxy display
+const fetchSelectableData = async () => {
     try {
         const groupsResponse = await fetch(`${API_BASE_URL}/groups?page_size=1000`);
-        if (groupsResponse.ok) availableGroupsForFilter.value = (await groupsResponse.json()).items;
-        else console.error("Failed to fetch groups for filter");
-        availableGroupsForBatch.value = availableGroupsForFilter.value;
-
+        if (groupsResponse.ok) {
+            availableGroups.value = (await groupsResponse.json()).items;
+        } else {
+            console.error("Failed to fetch groups");
+            availableGroups.value = [];
+        }
 
         const proxiesResponse = await fetch(`${API_BASE_URL}/proxies?page_size=1000`);
-        if (proxiesResponse.ok) availableProxiesForDisplay.value = (await proxiesResponse.json()).items;
+        if (proxiesResponse.ok) {
+            availableProxiesForDisplay.value = (await proxiesResponse.json()).items;
+        }
         else console.error("Failed to fetch proxies for display");
 
     } catch (e) {
@@ -223,8 +246,8 @@ const fetchSelectableData = async () => { // For group filter and proxy display
 };
 
 const getGroupName = (groupId?: number | null) => {
-    if (!groupId) return null;
-    const group = availableGroupsForFilter.value.find(g => g.id === groupId);
+    if (groupId === null || groupId === undefined) return null; // Check for undefined as well
+    const group = availableGroups.value.find(g => g.id === groupId);
     return group ? group.name : String(groupId);
 };
 
@@ -339,50 +362,146 @@ const toggleSelectAllProfiles = (event: Event) => {
 };
 
 const handleBatchDelete = async () => {
-    // Placeholder for actual batch delete API call
-    if (!selectedProfileIds.value.length) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedProfileIds.value.length} selected profile(s)?`)) {
-        console.log("Batch deleting profiles:", selectedProfileIds.value);
-        // Example call: await fetch(`${API_BASE_URL}/profiles/batch`, { method: 'POST', body: JSON.stringify({ action: 'delete', profile_ids: selectedProfileIds.value }) });
-        alert("Batch delete functionality not fully implemented yet with backend. Selected IDs: " + selectedProfileIds.value.join(', '));
-        // fetchProfiles(pagination.current_page);
-        // selectedProfileIds.value = [];
+    if (selectedProfileIds.value.length === 0) {
+        alert('No profiles selected for deletion.');
+        return;
+    }
+    if (window.confirm(`Are you sure you want to delete ${selectedProfileIds.value.length} selected profile(s)? This action cannot be undone.`)) {
+        loading.value = true; // Use main loading indicator for simplicity
+        error.value = null;
+        try {
+            const response = await fetch(`${API_BASE_URL}/profiles/batch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete', profile_ids: selectedProfileIds.value }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Batch delete failed. Server error.' }));
+                throw new Error(errorData.detail || 'Batch delete operation failed.');
+            }
+            // Assuming backend returns a success message or status
+            // const result = await response.json();
+            // alert(result.message || `${selectedProfileIds.value.length} profiles deleted successfully.`);
+            fetchProfiles(pagination.current_page); // Refresh list
+            selectedProfileIds.value = []; // Clear selection
+        } catch (e: any) {
+            error.value = e.message; // Display error on main page
+            // alert("Error during batch delete: " + e.message); // Or use a notification system
+        } finally {
+            loading.value = false;
+        }
     }
 };
-const handleBatchAssignGroup = async () => {
-    if (!selectedProfileIds.value.length || batchAssignGroupId.value === null) return;
-     if (window.confirm(`Assign ${selectedProfileIds.value.length} profile(s) to group ID ${batchAssignGroupId.value}?`)) {
-        console.log("Batch assigning group for profiles:", selectedProfileIds.value, "to group:", batchAssignGroupId.value);
-        alert(`Batch assign group not fully implemented. Profiles: ${selectedProfileIds.value.join(', ')}, Group ID: ${batchAssignGroupId.value}`);
-        // Example call: await fetch(`${API_BASE_URL}/profiles/batch`, { method: 'POST', body: JSON.stringify({ action: 'assign_group', profile_ids: selectedProfileIds.value, group_id: batchAssignGroupId.value }) });
-        // fetchProfiles(pagination.current_page);
-        // selectedProfileIds.value = [];
-        // selectedBatchAction.value = '';
+
+const openBatchAssignGroupModal = () => {
+  if (selectedProfileIds.value.length === 0) {
+    alert('No profiles selected to assign to a group.');
+    return;
+  }
+  selectedGroupIdForBatchAssign.value = null; // Reset previous selection in modal
+  batchAssignError.value = null; // Clear previous modal errors
+  showAssignGroupModal.value = true;
+};
+
+const submitBatchAssignGroup = async () => {
+  // selectedGroupIdForBatchAssign can be 0 for "Unassign"
+  if (selectedGroupIdForBatchAssign.value === null) {
+    batchAssignError.value = "Please select a group to assign, or choose 'Unassign'.";
+    return;
+  }
+  if (selectedProfileIds.value.length === 0) { // Should be prevented by button disable state
+    batchAssignError.value = "No profiles selected.";
+    return;
+  }
+
+  // loading.value = true; // Can use a modal-specific loader if preferred
+  batchAssignError.value = null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/profiles/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'assign_group',
+        profile_ids: selectedProfileIds.value,
+        // Send null to backend if 'Unassign' (value 0) is selected
+        group_id: selectedGroupIdForBatchAssign.value === 0 ? null : selectedGroupIdForBatchAssign.value,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Batch assign group failed. Server error.' }));
+      throw new Error(errorData.detail || 'Batch assign group operation failed.');
     }
+    // const result = await response.json();
+    // alert(result.message || "Profiles successfully assigned to group.");
+
+    fetchProfiles(pagination.current_page); // Refresh the list to show updated group assignments
+    selectedProfileIds.value = []; // Clear selection
+    showAssignGroupModal.value = false; // Close modal
+
+  } catch (e: any) {
+    batchAssignError.value = e.message; // Show error within the modal
+  } finally {
+    // loading.value = false;
+  }
 };
 
 const launchProfile = async (profileId: number) => {
-    launchStatus.profile_id = profileId;
-    launchStatus.message = "Attempting to launch profile...";
-    launchStatus.command = null;
-    launchStatus.error = false;
-    launchStatus.visible = true;
+  loading.value = true; // Optional: show a general loading state for the view
+  launchStatus.profile_id = profileId;
+  launchStatus.message = 'Initiating launch...'; // Initial message
+  launchStatus.command = null;
+  launchStatus.error = null;
+  showLaunchStatusModal.value = true; // Open modal immediately with initial message
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/profiles/${profileId}/launch`, { method: 'POST' });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.detail || `Launch failed with status ${response.status}`);
-        }
-        launchStatus.message = data.message;
-        launchStatus.command = data.command;
-        if (data.command === null && data.message.includes("not found")) { // If command is null due to exec not found
-            launchStatus.error = true;
-        }
-    } catch (e: any) {
-        launchStatus.message = e.message || "Failed to communicate with launch endpoint.";
-        launchStatus.error = true;
+  try {
+    const response = await fetch(`${API_BASE_URL}/profiles/${profileId}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, // Good practice, though no body for this one
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      // Assuming backend returns error in responseData.detail
+      launchStatus.error = responseData.detail || `Failed to launch profile (status ${response.status}).`;
+      launchStatus.message = 'Launch Failed.'; // Overwrite initial message
+      // No command to show on failure usually
+      throw new Error(launchStatus.error); // Throw to be caught by catch block for consistent error handling
     }
+
+    launchStatus.message = responseData.message;
+    launchStatus.command = responseData.command;
+    // If command is null and message indicates an issue (like exec not found), mark as error for styling
+    if (responseData.command === null && (responseData.message.includes("not found") || responseData.message.includes("failed"))) {
+        launchStatus.error = responseData.message; // Use the message as the error detail
+    }
+
+    // Update last_launch_time in the UI
+    const profileIndex = profiles.value.findIndex(p => p.id === profileId);
+    if (profileIndex !== -1) {
+      // Create a new object to ensure reactivity for the specific item
+      // This is a client-side approximation. Backend already updated its record.
+      // For full accuracy, one might re-fetch the specific profile or the list.
+      profiles.value[profileIndex] = {
+        ...profiles.value[profileIndex],
+        last_launch_time: new Date().toISOString(),
+      };
+    }
+
+  } catch (e: any) {
+    // Error already set if it was an HTTP error with JSON detail
+    if (!launchStatus.error) { // If error was not set from response.json().detail
+        launchStatus.error = e.message || 'An unexpected error occurred during launch.';
+    }
+    if (!launchStatus.message || launchStatus.message === 'Initiating launch...') {
+      launchStatus.message = 'Launch Failed.'; // Ensure message reflects failure
+    }
+  } finally {
+    loading.value = false; // Optional: stop general loading state
+    // Modal remains open until user closes it
+  }
 };
 
 
@@ -391,11 +510,18 @@ onMounted(() => {
   fetchProfiles(); // Initial profile list
 });
 
-// Reset batch action if selection is cleared
+// Reset dependent UI elements if selection is cleared
 watch(selectedProfileIds, (newSelection) => {
     if (newSelection.length === 0) {
-        selectedBatchAction.value = '';
-        batchAssignGroupId.value = null;
+        // No specific action needed here now as selectedBatchAction is removed
+    }
+});
+
+// When modal for assign group is closed, reset its specific state
+watch(showAssignGroupModal, (isVisible) => {
+    if (!isVisible) {
+        selectedGroupIdForBatchAssign.value = null;
+        batchAssignError.value = null;
     }
 });
 
@@ -548,4 +674,25 @@ watch(selectedProfileIds, (newSelection) => {
 }
 .modal-success { color: green; }
 .modal-error { color: red; } /* Also used by form modal error */
+
+.command-display {
+  background-color: #2d2d2d; /* Darker background for command */
+  color: #f0f0f0; /* Light text */
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid #444; /* Darker border */
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace; /* Monospace font */
+  font-size: 0.85em; /* Slightly larger for readability */
+  margin-top: 10px; /* Space above command block */
+}
+
+.launch-status-modal .modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
 </style>

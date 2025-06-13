@@ -47,14 +47,24 @@ class Profile(Base):
 
     # Advanced Settings (Fingerprint Configuration)
     startup_homepage = Column(Text, nullable=True)
-    user_agent = Column(Text, nullable=True)
-    sec_ch_ua = Column(Text, nullable=True)
-    webgl_image_mode = Column(String, default='default')
-    webgl_vendor = Column(String, nullable=True)
-    webgl_renderer = Column(String, nullable=True)
-    audiocontext_mode = Column(String, default='default')
-    clientrects_mode = Column(String, default='default')
-    speech_voices_mode = Column(String, default='default')
+
+    user_agent_mode = Column(String, default='default') # 'default', 'custom', 'random' (random might be via seed)
+    user_agent_custom = Column(Text, nullable=True) # Actual UA string if mode is 'custom'. Old 'user_agent' field.
+
+    sec_ch_ua_mode = Column(String, default='default') # 'default', 'custom', 'random'
+    sec_ch_ua_custom = Column(Text, nullable=True) # Actual Sec-CH-UA string if mode is 'custom'. Old 'sec_ch_ua' field.
+
+    webgl_image_mode = Column(String, default='default') # 'default', 'custom', 'random'
+    # webgl_image_custom_hash = Column(String, nullable=True) # If 'custom' for image hash - Add if explicitly needed
+
+    webgl_metadata_mode = Column(String, default='default') # 'default', 'custom', 'random'
+    webgl_vendor = Column(String, nullable=True) # Effective if webgl_metadata_mode is 'custom'
+    webgl_renderer = Column(String, nullable=True) # Effective if webgl_metadata_mode is 'custom'
+
+    audiocontext_mode = Column(String, default='default') # 'default', 'noise', 'off'
+    clientrects_mode = Column(String, default='default') # 'default', 'noise', 'off'
+    speech_voices_mode = Column(String, default='default') # 'default', 'custom'
+    speech_voices_custom_data = Column(Text, nullable=True) # For custom speech voices config, JSON or similar
     cpu_cores = Column(Integer, nullable=True)
     memory_gb = Column(Integer, nullable=True)
     device_name = Column(String, nullable=True)
@@ -62,7 +72,8 @@ class Profile(Base):
 
     # Switches
     do_not_track = Column(Boolean, default=False)
-    ssl_cipher_suites_mode = Column(String, default='default')
+    ssl_cipher_suites_mode = Column(String, default='default') # 'default', 'strict', 'custom'
+    ssl_custom_suites_data = Column(Text, nullable=True) # For custom SSL cipher suites list
     port_scan_protection = Column(Boolean, default=True)
     hardware_acceleration = Column(Boolean, default=True)
     scan_port_whitelist = Column(Text, nullable=True) # Comma-separated ports

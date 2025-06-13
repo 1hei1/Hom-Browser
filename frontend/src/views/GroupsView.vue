@@ -233,6 +233,7 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap; /* Added for consistency */
   /* margin-bottom: 20px; -- Handled by parent gap */
 }
 .primary-button {
@@ -332,22 +333,29 @@ onMounted(() => {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 25px;
+  gap: 8px; /* Ant Design/Element UI like modal footer gap */
+  margin-top: 24px; /* Consistent spacing */
+  border-top: 1px solid #e4e7ed; /* Separator line like ProfileFormModal */
+  padding-top: 20px; /* Spacing above buttons */
 }
-.modal-actions button {
-  padding: 8px 15px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  cursor: pointer;
-  transition: background-color 0.3s, border-color 0.3s;
+.modal-actions button { /* General style for action buttons */
+    padding: 8px 15px; /* Adjusted padding to match ProfileFormModal */
+    font-size: 14px; /* Consistent font size */
+    border-radius: 4px;
+    cursor: pointer;
+    /* border: 1px solid #dcdfe6; */ /* Base border from ProfileFormModal */
 }
-.modal-actions button[type="button"] {
-  background-color: #fff;
+.modal-actions button[type="button"] { /* Cancel button */
+    background-color: #fff;
+    border: 1px solid #dcdfe6; /* Style like ProfileFormModal's cancel */
+    color: #606266;
 }
 .modal-actions button[type="button"]:hover {
-  border-color: #bbb;
+    color: #409eff; /* Element UI hover blue */
+    border-color: #c6e2ff; /* Lighter blue border */
+    background-color: #ecf5ff; /* Light blue background */
 }
+/* .primary-button class will style the submit button */
 
 .modal-error {
   color: red;
