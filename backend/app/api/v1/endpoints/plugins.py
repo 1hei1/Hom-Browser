@@ -8,12 +8,12 @@ from math import ceil
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Plugin, summary="Create Plugin (Not Implemented)")
+@router.post("", response_model=schemas.Plugin, summary="Create Plugin (Not Implemented)") # Changed path
 def create_plugin_endpoint(plugin: schemas.PluginCreate, db: Session = Depends(get_db)):
     # Intended logic: return crud.crud_plugin.create_plugin(db=db, plugin=plugin)
     raise HTTPException(status_code=501, detail="Plugin creation is not yet implemented.")
 
-@router.get("/", response_model=schemas.PaginatedResponse[schemas.Plugin], summary="List Plugins (Not Implemented)")
+@router.get("", response_model=schemas.PaginatedResponse[schemas.Plugin], summary="List Plugins (Not Implemented)") # Changed path
 def read_plugins_endpoint(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),

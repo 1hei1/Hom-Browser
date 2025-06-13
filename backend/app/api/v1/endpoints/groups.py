@@ -8,14 +8,14 @@ from math import ceil
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Group)
+@router.post("", response_model=schemas.Group) # Changed path from "/" to ""
 def create_group_endpoint(group: schemas.GroupCreate, db: Session = Depends(get_db)):
     db_group_by_name = crud_group.get_group_by_name(db, name=group.name)
     if db_group_by_name:
         raise HTTPException(status_code=400, detail="Group name already exists")
     return crud_group.create_group(db=db, group=group)
 
-@router.get("/", response_model=schemas.PaginatedResponse[schemas.Group])
+@router.get("", response_model=schemas.PaginatedResponse[schemas.Group]) # Changed path from "/" to ""
 def read_groups_endpoint(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),

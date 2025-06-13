@@ -8,7 +8,7 @@ from math import ceil
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Proxy)
+@router.post("", response_model=schemas.Proxy) # Changed path from "/" to ""
 def create_proxy_endpoint(proxy: schemas.ProxyCreate, db: Session = Depends(get_db)):
     # One might add a check here:
     # existing_proxy = db.query(models.Proxy).filter(models.Proxy.host == proxy.host, models.Proxy.port == proxy.port, models.Proxy.type == proxy.type).first()
@@ -16,7 +16,7 @@ def create_proxy_endpoint(proxy: schemas.ProxyCreate, db: Session = Depends(get_
     #     raise HTTPException(status_code=400, detail="Proxy with this host, port, and type already exists")
     return crud_proxy.create_proxy(db=db, proxy=proxy)
 
-@router.get("/", response_model=schemas.PaginatedResponse[schemas.Proxy])
+@router.get("", response_model=schemas.PaginatedResponse[schemas.Proxy]) # Changed path from "/" to ""
 def read_proxies_endpoint(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),

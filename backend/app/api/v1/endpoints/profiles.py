@@ -12,7 +12,7 @@ from datetime import datetime, timezone as dt_timezone # Ensure timezone aware f
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Profile)
+@router.post("", response_model=schemas.Profile) # Changed path from "/" to ""
 def create_profile_endpoint(profile: schemas.ProfileCreate, db: Session = Depends(get_db)):
     # Potential: Check for duplicate name if necessary, or handle DB unique constraint error
     # existing_profile = db.query(models.Profile).filter(models.Profile.name == profile.name).first()
@@ -20,7 +20,7 @@ def create_profile_endpoint(profile: schemas.ProfileCreate, db: Session = Depend
     #     raise HTTPException(status_code=400, detail="Profile name already registered")
     return crud_profile.create_profile(db=db, profile=profile)
 
-@router.get("/", response_model=schemas.PaginatedResponse[schemas.ProfileSimple])
+@router.get("", response_model=schemas.PaginatedResponse[schemas.ProfileSimple]) # Changed path from "/" to ""
 def read_profiles_endpoint(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),
