@@ -89,3 +89,17 @@ class Profile(Base):
 
     group = relationship("Group", back_populates="profiles")
     custom_proxy = relationship("Proxy", back_populates="profiles")
+
+
+class Plugin(Base):
+    __tablename__ = "plugins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    version = Column(String, nullable=True)
+    source_path = Column(Text, nullable=True) # Path to .crx file or identifier from a store
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # If plugins can be associated with profiles, a relationship would be needed here.
+    # For now, keeping it simple as per initial DDL which didn't show direct profile links.
