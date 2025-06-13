@@ -1,18 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ..crud import crud_profile # Corrected import
-from .. import models, schemas # Corrected import
-from ..database import get_db # Corrected import
+from ...crud import crud_profile
+from ... import models, schemas
+from ...database import get_db
 from math import ceil
+import subprocess # For actual launching (later, for now just generate command)
+import os # For environment variables
+import shlex # For quoting command string for display
+from datetime import datetime, timezone as dt_timezone # Ensure timezone aware for last_launch_time
 
 router = APIRouter()
 
 @router.post("/", response_model=schemas.Profile)
 def create_profile_endpoint(profile: schemas.ProfileCreate, db: Session = Depends(get_db)):
-    # Check for duplicate name if necessary, or handle DB unique constraint error
-    # db_profile_by_name = db.query(models.Profile).filter(models.Profile.name == profile.name).first()
-    # if db_profile_by_name:
+    # Potential: Check for duplicate name if necessary, or handle DB unique constraint error
+    # existing_profile = db.query(models.Profile).filter(models.Profile.name == profile.name).first()
+    # if existing_profile:
     #     raise HTTPException(status_code=400, detail="Profile name already registered")
     return crud_profile.create_profile(db=db, profile=profile)
 
@@ -31,7 +35,6 @@ def read_profiles_endpoint(
     total_items = crud_profile.count_profiles(db, group_id=group_id, name=name)
     total_pages = ceil(total_items / page_size) if total_items > 0 else 0
 
-    # Convert ORM objects to Pydantic schemas for the response
     profiles_simple = [schemas.ProfileSimple.from_orm(p) for p in profiles_orm]
 
     return schemas.PaginatedResponse(
@@ -71,7 +74,79 @@ async def batch_update_profiles_endpoint():
 
 @router.post("/{profile_id}/launch", response_model=schemas.ProfileLaunchResponse, summary="Launch a browser profile")
 async def launch_profile_endpoint(profile_id: int, db: Session = Depends(get_db)):
-    db_profile = crud_profile.get_profile(db, profile_id=profile_id)
+    db_profile = crud_profile.get_profile(db, profile_id=profile_id) # This now joinedloads custom_proxy
     if db_profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
-    raise HTTPException(status_code=501, detail="Launch functionality not yet implemented")
+
+    # Update last_launch_time
+    db_profile.last_launch_time = datetime.now(dt_timezone.utc)
+    db.add(db_profile)
+    db.commit()
+    db.refresh(db_profile)
+
+    # Determine Chromium executable path
+    # Priority: Environment Variable -> Default from crud_profile -> Developer fallback
+    chromium_path_env = os.getenv("FINGERPRINT_CHROMIUM_PATH")
+    chromium_path_crud_default = crud_profile.CHROMIUM_EXECUTABLE_PATH # Access the default from crud module
+
+    chromium_path_to_use = chromium_path_env or chromium_path_crud_default
+
+    if not os.path.exists(chromium_path_to_use) or not os.path.isfile(chromium_path_to_use):
+        # Try a common relative path for development if the primary path fails
+        # Assumes backend/main.py is the execution root for this relative path.
+        # For a packaged app, this path needs to be more robust (e.g., using importlib.resources or similar)
+        dev_fallback_path = os.path.join(os.getcwd(), "fingerprint-chromium", "chrome") # Example
+
+        # Check if fingerprint-chromium directory exists in CWD (useful for local dev)
+        local_fingerprint_chromium_dir = os.path.join(os.getcwd(), "fingerprint-chromium")
+        if os.path.isdir(local_fingerprint_chromium_dir):
+            # Try to find 'chrome' or 'fingerprint-chromium' executable inside it
+            possible_executables = ["chrome", "fingerprint-chromium", "chromium"]
+            for exec_name in possible_executables:
+                potential_path = os.path.join(local_fingerprint_chromium_dir, exec_name)
+                if os.path.exists(potential_path) and os.path.isfile(potential_path) and os.access(potential_path, os.X_OK):
+                    chromium_path_to_use = potential_path
+                    break
+            else: # If loop finishes without finding an executable
+                 return schemas.ProfileLaunchResponse(
+                    message=f"Chromium executable not found in {local_fingerprint_chromium_dir} or configured path: {chromium_path_to_use}. Searched for {possible_executables}.",
+                    profile_id=profile_id,
+                    command=None
+                )
+        elif not (os.path.exists(chromium_path_to_use) and os.path.isfile(chromium_path_to_use)):
+             return schemas.ProfileLaunchResponse(
+                message=f"Chromium executable not found at configured path: {chromium_path_to_use}. Environment FINGERPRINT_CHROMIUM_PATH is not set or path is invalid. Default path in code is also invalid.",
+                profile_id=profile_id,
+                command=None
+            )
+
+
+    command_args = crud_profile.generate_chromium_command(db_profile, chromium_executable_path=chromium_path_to_use)
+    command_str = ' '.join(shlex.quote(str(arg)) for arg in command_args)
+
+    # Actual subprocess call (example, would need error handling, process management)
+    # try:
+    #     print(f"Attempting to launch: {command_args}")
+    #     process = subprocess.Popen(command_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    #     return schemas.ProfileLaunchResponse(
+    #         message=f"Browser for profile '{db_profile.name}' launched successfully with PID {process.pid}.",
+    #         profile_id=profile_id,
+    #         command=command_str
+    #     )
+    # except FileNotFoundError:
+    #      return schemas.ProfileLaunchResponse(
+    #         message=f"Chromium executable not found at effective path: {chromium_path_to_use}. Launch failed.",
+    #         profile_id=profile_id,
+    #         command=command_str
+    #     )
+    # except Exception as e:
+    #     # Log the full error server-side
+    #     print(f"Error launching browser for profile {profile_id}: {e}\nCommand: {command_str}")
+    #     raise HTTPException(status_code=500, detail=f"Failed to launch browser: {str(e)}")
+
+    print(f"Generated command for profile {profile_id}: {command_str}") # Log for server console
+    return schemas.ProfileLaunchResponse(
+        message=f"Browser launch command for profile '{db_profile.name}' generated. (Actual launch disabled in this version)",
+        profile_id=profile_id,
+        command=command_str
+    )

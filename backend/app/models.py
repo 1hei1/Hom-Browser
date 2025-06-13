@@ -71,5 +71,10 @@ class Profile(Base):
     custom_launch_parameters = Column(Text, nullable=True)
     fingerprint_seed = Column(Integer, nullable=True)
 
+    # Language and Timezone for command generator
+    language = Column(String, nullable=True) # e.g., en-US
+    accept_language = Column(String, nullable=True) # e.g., en-US,en;q=0.9
+    timezone = Column(String, nullable=True) # e.g., America/Los_Angeles
+
     group = relationship("Group", back_populates="profiles")
     custom_proxy = relationship("Proxy", back_populates="profiles")

@@ -33,6 +33,9 @@ class ProfileBase(BaseModel):
     scan_port_whitelist: Optional[str] = None
     custom_launch_parameters: Optional[str] = None
     fingerprint_seed: Optional[int] = None
+    language: Optional[str] = None
+    accept_language: Optional[str] = None
+    timezone: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     name: str # Name is required for creation
@@ -67,6 +70,9 @@ class ProfileUpdate(BaseModel): # Inherit directly from BaseModel for full optio
     scan_port_whitelist: Optional[str] = None
     custom_launch_parameters: Optional[str] = None
     fingerprint_seed: Optional[int] = None
+    language: Optional[str] = None
+    accept_language: Optional[str] = None
+    timezone: Optional[str] = None
 
 class Profile(ProfileBase): # Profile inherits from ProfileBase, so name is required
     id: int
@@ -145,10 +151,23 @@ class ProxyUpdate(BaseModel): # Inherit directly from BaseModel for full optiona
 class Proxy(ProxyBase): # Proxy inherits from ProxyBase, so type, host, port are required
     id: int
     created_at: datetime
-    # usage_count: Optional[int] = 0 # This would be a computed property
+    usage_count: Optional[int] = None # Added for API response
 
     class Config:
         orm_mode = True
+
+
+class BatchDeletePayload(BaseModel):
+    ids: List[int]
+
+class BatchDeleteErrorDetail(BaseModel):
+    id: int
+    error: str
+
+class BatchDeleteResponse(BaseModel):
+    message: str
+    deleted_count: int
+    errors: List[BatchDeleteErrorDetail]
 
 # Generic response for lists with pagination
 DataT = TypeVar('DataT')
@@ -159,3 +178,27 @@ class PaginatedResponse(BaseModel, Generic[DataT]):
     page: int
     page_size: int
     pages: int
+
+
+# Schemas for Plugin
+class PluginBase(BaseModel):
+    name: str
+    version: Optional[str] = None
+    source_path: Optional[str] = None # Path to .crx or similar
+    enabled: bool = True
+
+class PluginCreate(PluginBase):
+    pass
+
+class PluginUpdate(BaseModel):
+    name: Optional[str] = None
+    version: Optional[str] = None
+    source_path: Optional[str] = None
+    enabled: Optional[bool] = None
+
+class Plugin(PluginBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
