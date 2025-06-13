@@ -2,9 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from ...main import app # Relative import from backend/app/tests/ to backend/
-from ..database import Base, get_db # Relative import from backend/app/tests/ to backend/app/
-from .. import models # Relative import from backend/app/tests/ to backend/app/
+from main import app # Changed: Assuming backend/ is in PYTHONPATH
+from app.database import Base, get_db # Changed
+from app import models # Changed
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db" # Test database
 

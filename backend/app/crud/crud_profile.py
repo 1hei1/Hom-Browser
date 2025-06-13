@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
-from .. import models, schemas
+from app import models, schemas # Changed
 from fastapi import HTTPException
 from typing import List, Optional, Type, TypeVar, Dict, Any # Added Dict, Any
 from pydantic import BaseModel

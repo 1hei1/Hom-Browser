@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from ....app import schemas # Adjusted import as per prompt
-from ....app import models # Adjusted import as per prompt
-from ....app.crud import crud_profile # For direct db checks if needed, though client is primary
+from app import schemas # Changed
+from app import models # Changed
+from app.crud import crud_profile # Changed
 
 # Note: Tests should ideally rely on the client fixture which uses a db_session with rollback.
 # Direct use of db_session is for verifying data persistence if not using the client for all actions.

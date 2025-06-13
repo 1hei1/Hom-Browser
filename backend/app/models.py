@@ -1,7 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Text, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .database import Base # Adjusted import path
+from app.database import Base # Changed
 
 class Group(Base):
     __tablename__ = "groups"

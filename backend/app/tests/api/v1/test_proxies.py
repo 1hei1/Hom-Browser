@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from typing import List # Not strictly needed here, but good for consistency
-from ....app import schemas, models
-from ....app.crud import crud_proxy, crud_profile
+from typing import List, Optional # Added Optional for notes in helper
+from app import schemas, models # Changed
+from app.crud import crud_proxy, crud_profile # Changed
 
 def create_proxy_in_db(db_session: Session, name: str, type: str = "HTTP", host: str = "127.0.0.1", port: int = 8080, notes: Optional[str] = None) -> models.Proxy:
     proxy_create = schemas.ProxyCreate(name=name, type=type, host=host, port=port, notes=notes)

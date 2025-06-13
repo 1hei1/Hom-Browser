@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .endpoints import profiles, groups, proxies, plugins # Add plugins
+from app.api.v1.endpoints import profiles, groups, proxies, plugins # Changed
 
 api_router = APIRouter()
 api_router.include_router(profiles.router, prefix="/profiles", tags=["profiles"])

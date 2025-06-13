@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from .. import models, schemas
+from app import models, schemas # Changed
 
 def get_group(db: Session, group_id: int) -> Optional[models.Group]:
     return db.query(models.Group).filter(models.Group.id == group_id).first()

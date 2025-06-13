@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ...crud import crud_group, crud_profile # crud_profile might not be needed here, but good for consistency
-from ... import models, schemas
-from ...database import get_db
+from app.crud import crud_group # Removed crud_profile as it's not directly used here
+from app import models, schemas
+from app.database import get_db
 from math import ceil
 
 router = APIRouter()

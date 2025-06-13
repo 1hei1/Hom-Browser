@@ -94,14 +94,14 @@ pip install -r requirements.txt
 
 # Run the backend server (development mode with auto-reload)
 # Ensure your FINGERPRINT_CHROMIUM_PATH is set, or update the default in crud_profile.py
-# Note: The --app-dir app flag assumes uvicorn is run from the 'backend' directory.
-# If you run from 'backend/app', then it would be 'uvicorn main:app --reload ...'
-uvicorn main:app --reload --app-dir . --host 0.0.0.0 --port 8000
+# Make sure you are in the 'backend' directory when running this command.
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The backend API will be available at `http://localhost:8000`.
-API documentation (Swagger UI) will be at `http://localhost:8000/docs` (or `/api/v1/docs` if `openapi_url` in `main.py` is set to `/api/v1/openapi.json` and default docs path is used).
-The current `main.py` sets `openapi_url="/api/v1/openapi.json"`, so the direct schema is there. FastAPI default docs paths are `/docs` and `/redoc`.
+API documentation (Swagger UI) is at `http://localhost:8000/docs`.
+ReDoc documentation is at `http://localhost:8000/redoc`.
+The OpenAPI schema is at `http://localhost:8000/api/v1/openapi.json` (as configured in `main.py`).
 
 ### 3. Frontend Setup
 

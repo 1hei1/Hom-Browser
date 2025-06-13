@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ...crud import crud_profile
-from ... import models, schemas
-from ...database import get_db
+from app.crud import crud_profile
+from app import models, schemas
+from app.database import get_db
 from math import ceil
 import subprocess # For actual launching (later, for now just generate command)
 import os # For environment variables

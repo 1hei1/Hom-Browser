@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload # joinedload is not used here currently
 from typing import List, Optional
-from .. import models, schemas
+from app import models, schemas # Changed
 from sqlalchemy import or_
 
 def get_proxy(db: Session, proxy_id: int) -> Optional[models.Proxy]:

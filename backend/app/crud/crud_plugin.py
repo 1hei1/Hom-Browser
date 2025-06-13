@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from .. import models, schemas
+from app import models, schemas # Changed
 from fastapi import HTTPException
 
 # Placeholder CRUD operations for Plugins

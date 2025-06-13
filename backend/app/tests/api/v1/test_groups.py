@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from ....app import schemas, models # Adjusted import for consistency
-from ....app.crud import crud_profile # To create profiles for group count testing
+from app import schemas, models # Changed
+from app.crud import crud_profile # Changed
 
 def test_create_group(client: TestClient, db_session: Session):
     group_data = {"name": "Test Group Alpha"}

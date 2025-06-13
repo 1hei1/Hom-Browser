@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.orm import Session
-from ....app import models, schemas, crud # Main crud module
-from ....app.crud import crud_group, crud_proxy, crud_profile # Specific crud modules
+from app import models, schemas, crud # Changed
+from app.crud import crud_group, crud_proxy, crud_profile # Changed
 import os
 import shutil
 import datetime
