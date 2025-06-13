@@ -20,7 +20,7 @@ def create_proxy_endpoint(proxy: schemas.ProxyCreate, db: Session = Depends(get_
 def read_proxies_endpoint(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
+    page_size: int = Query(10, ge=1, le=1000, description="Items per page"), # Changed le to 1000
     search: Optional[str] = Query(None, description="Search by proxy name, host, or type")
 ):
     skip = (page - 1) * page_size
@@ -31,7 +31,7 @@ def read_proxies_endpoint(
     items_with_count = []
     for proxy_model in proxies_orm:
         usage_count = crud_proxy.get_proxy_usage_count(db, proxy_id=proxy_model.id)
-        proxy_dict = schemas.Proxy.from_orm(proxy_model).dict() # Pydantic v1
+        proxy_dict = schemas.Proxy.from_orm(proxy_model).model_dump() # Pydantic v2
         proxy_dict['usage_count'] = usage_count
         items_with_count.append(proxy_dict)
 
@@ -49,7 +49,7 @@ def read_proxy_endpoint(proxy_id: int, db: Session = Depends(get_db)):
     if db_proxy is None:
         raise HTTPException(status_code=404, detail="Proxy not found")
 
-    proxy_data = schemas.Proxy.from_orm(db_proxy).dict()
+    proxy_data = schemas.Proxy.from_orm(db_proxy).model_dump() # Pydantic v2
     proxy_data['usage_count'] = crud_proxy.get_proxy_usage_count(db, proxy_id=proxy_id)
     return proxy_data
 
@@ -71,7 +71,7 @@ def update_proxy_endpoint(
     if updated_db_proxy is None:
         raise HTTPException(status_code=404, detail="Proxy not found after update attempt")
 
-    proxy_data = schemas.Proxy.from_orm(updated_db_proxy).dict()
+    proxy_data = schemas.Proxy.from_orm(updated_db_proxy).model_dump() # Pydantic v2
     proxy_data['usage_count'] = crud_proxy.get_proxy_usage_count(db, proxy_id=proxy_id) # Use original proxy_id
     return proxy_data
 
@@ -91,7 +91,7 @@ def delete_proxy_endpoint(proxy_id: int, db: Session = Depends(get_db)):
     if deleted_db_proxy is None: # Should not happen if initial check passed
          raise HTTPException(status_code=404, detail="Proxy became not found during deletion")
 
-    proxy_data = schemas.Proxy.from_orm(deleted_db_proxy).dict()
+    proxy_data = schemas.Proxy.from_orm(deleted_db_proxy).model_dump() # Pydantic v2
     proxy_data['usage_count'] = 0 # Since it's deleted, usage is effectively 0 for this response
     return proxy_data
 

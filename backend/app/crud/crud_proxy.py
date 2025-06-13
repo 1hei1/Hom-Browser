@@ -40,7 +40,7 @@ def count_proxies(db: Session, search: Optional[str] = None) -> int:
     return query.count()
 
 def create_proxy(db: Session, proxy: schemas.ProxyCreate) -> models.Proxy:
-    db_proxy = models.Proxy(**proxy.dict()) # Pydantic v1
+    db_proxy = models.Proxy(**proxy.model_dump()) # Pydantic v2
     db.add(db_proxy)
     db.commit()
     db.refresh(db_proxy)
@@ -51,7 +51,7 @@ def update_proxy(db: Session, proxy_id: int, proxy_update: schemas.ProxyUpdate) 
     if not db_proxy:
         return None
 
-    update_data = proxy_update.dict(exclude_unset=True) # Pydantic v1
+    update_data = proxy_update.model_dump(exclude_unset=True) # Pydantic v2
     for key, value in update_data.items():
         setattr(db_proxy, key, value)
 

@@ -63,7 +63,7 @@ def count_profiles(
     return query.count()
 
 def create_profile(db: Session, profile: schemas.ProfileCreate) -> models.Profile:
-    profile_data = profile.dict() # Pydantic v1
+    profile_data = profile.model_dump() # Pydantic v2
     # Fingerprint seed logic can be enhanced here if needed
     # e.g., if certain 'random' options are chosen in UI and seed is not provided, generate one.
     # For now, it's taken as is from the input.
@@ -79,7 +79,7 @@ def update_profile(db: Session, profile_id: int, profile_update: schemas.Profile
     if not db_profile:
         return None
 
-    update_data = profile_update.dict(exclude_unset=True) # Pydantic v1
+    update_data = profile_update.model_dump(exclude_unset=True) # Pydantic v2
     for key, value in update_data.items():
         setattr(db_profile, key, value)
 

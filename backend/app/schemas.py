@@ -105,8 +105,7 @@ class Profile(ProfileBase): # Profile inherits from ProfileBase, so name is requ
     port_scan_protection: bool
     hardware_acceleration: bool
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 class ProfileSimple(BaseModel): # For lists, maybe less detail
     id: int
@@ -114,8 +113,7 @@ class ProfileSimple(BaseModel): # For lists, maybe less detail
     group_id: Optional[int] = None
     last_launch_time: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 class ProfileLaunchResponse(BaseModel):
     message: str
@@ -137,8 +135,7 @@ class Group(GroupBase):
     created_at: datetime
     profile_count: Optional[int] = None # Added for API response
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 # Schemas for Proxy
 class ProxyBase(BaseModel):
@@ -169,8 +166,7 @@ class Proxy(ProxyBase): # Proxy inherits from ProxyBase, so type, host, port are
     created_at: datetime
     usage_count: Optional[int] = None # Added for API response
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}
 
 
 class BatchDeletePayload(BaseModel):
@@ -216,5 +212,4 @@ class Plugin(PluginBase):
     id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {'from_attributes': True}

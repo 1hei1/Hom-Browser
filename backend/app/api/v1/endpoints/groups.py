@@ -19,7 +19,7 @@ def create_group_endpoint(group: schemas.GroupCreate, db: Session = Depends(get_
 def read_groups_endpoint(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page")
+    page_size: int = Query(10, ge=1, le=1000, description="Items per page") # Changed le to 1000
     # Add name search for groups if needed in future:
     # name: Optional[str] = Query(None, description="Search by group name (contains)"),
 ):
@@ -35,7 +35,7 @@ def read_groups_endpoint(
     for group_model in groups_orm:
         profile_count = db.query(models.Profile).filter(models.Profile.group_id == group_model.id).count()
         # Create a new dictionary from the ORM model and add profile_count
-        group_dict = schemas.Group.from_orm(group_model).dict() # Pydantic v1
+        group_dict = schemas.Group.from_orm(group_model).model_dump() # Pydantic v2
         group_dict["profile_count"] = profile_count
         items_with_count.append(group_dict)
 
@@ -54,7 +54,7 @@ def read_group_endpoint(group_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Group not found")
 
     profile_count = db.query(models.Profile).filter(models.Profile.group_id == db_group.id).count()
-    group_data = schemas.Group.from_orm(db_group).dict() # Pydantic v1
+    group_data = schemas.Group.from_orm(db_group).model_dump() # Pydantic v2
     # Add profile_count to the response. The schemas.Group must be updated to include it
     # or we return a custom dict/model here.
     # For now, let's assume schemas.Group will be extended or we return a dict that matches its structure + count.
@@ -93,7 +93,7 @@ def update_group_endpoint(
         raise HTTPException(status_code=404, detail="Group not found after update attempt") # Should not happen if initial check is done
 
     profile_count = db.query(models.Profile).filter(models.Profile.group_id == updated_db_group.id).count()
-    group_data = schemas.Group.from_orm(updated_db_group).dict()
+    group_data = schemas.Group.from_orm(updated_db_group).model_dump() # Pydantic v2
     group_data["profile_count"] = profile_count
     return group_data
 
@@ -113,7 +113,7 @@ def delete_group_endpoint(group_id: int, db: Session = Depends(get_db)):
     # To include profile_count (which would be 0 after profiles are unassigned)
     # we can construct a dictionary from the returned object.
     if deleted_db_group:
-        group_data = schemas.Group.from_orm(deleted_db_group).dict()
+        group_data = schemas.Group.from_orm(deleted_db_group).model_dump() # Pydantic v2
         group_data["profile_count"] = 0 # Profiles are unassigned before group deletion
         return group_data
     else:

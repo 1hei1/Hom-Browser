@@ -26,7 +26,7 @@ def update_group(db: Session, group_id: int, group_update: schemas.GroupUpdate) 
     if not db_group:
         return None
 
-    update_data = group_update.dict(exclude_unset=True) # Pydantic v1
+    update_data = group_update.model_dump(exclude_unset=True) # Pydantic v2
 
     if 'name' in update_data and update_data['name'] != db_group.name:
         # Check if new name already exists for another group
